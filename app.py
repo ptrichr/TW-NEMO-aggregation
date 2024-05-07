@@ -2,6 +2,7 @@
 import pandas as pd
 import re
 import os
+import json
 from pprint import pprint
 from functools import reduce
 import requests
@@ -63,31 +64,9 @@ headers = {
     "Authorization": os.getenv('NEMO_token')
 }
 
-# json stuff (for local testing)
-# with open("./dump/response.json") as file:
-#     data = file.read()
-#     d = json.loads(data)
-
-# dataframe
-df = None
-
-# flag for if there aren't anymore pages to parse
-next_page = base_url
-
-# get all pages
-while next_page is not None:
-    # get http response
-    response = requests.get(next_page, headers=headers).json()
-    df_response = pd.DataFrame.from_dict(response['results'])
-    
-    # if empty, make the df, if not empty concat
-    if df is None:
-        df = df_response
-    else:
-        df = pd.concat([df, df_response])
-    
-    # next page
-    next_page = response['next']
+# get http response
+response = requests.get(base_url, headers=headers).json()
+df = pd.DataFrame(response)
     
 # find start and end times in seconds from timestamps, calculate their differential (length)
 times = zip(df['start'].tolist(), df['end'].tolist())
@@ -110,7 +89,6 @@ for (start, end) in times:
 
 # insert list into dataframe as new column
 df['differentials'] = differentials
-
 
 # time per machine section
 timedict = {}
