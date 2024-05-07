@@ -9,16 +9,14 @@ import requests
 from dotenv import load_dotenv
 
 # TODO
+# refactor for datetime module instead of regex parsing
 # make frontend
 # deploy app
 
 # load environment variables
 load_dotenv()
 
-# regex to parse time format
-time_pattern = re.compile(".*T([0-9]{2}):([0-9]{2}):([0-9]{2}).*")
-
-# key for machine ids for time per machine
+# tool id by machine
 machine_ids = {
     # ifl machines
     "Lathe": "16",
@@ -57,6 +55,11 @@ machine_ids = {
     # id 32 ??
 }
 
+# tool id by labs
+ifl_ids = [16, 17, 31] + list(range(20, 29))
+rpl_ids = [1, 29, 30]
+rpc_ids = list(range(2, 16))
+
 # http nemo request parameters
 base_url = "https://nemo.tw.umd.edu/api/reservations/"
 headers = {
@@ -72,14 +75,18 @@ df = pd.DataFrame(response)
 times = zip(df['start'].tolist(), df['end'].tolist())
 differentials = []
 
+# regex to parse time format
+# ex. 2024-04-30T11:06:24.906199-04:00
+time_pattern = re.compile("([0-9]{4})-[0-9]{2}-[0-9]{2}T([0-9]{2}):([0-9]{2}):([0-9]{2}).*")
+
 for (start, end) in times:
     # match the time
     start_match = re.fullmatch(pattern=time_pattern, string=start)
     end_match = re.fullmatch(pattern=time_pattern, string=end)
     
     # get time in seconds
-    start_t = int(start_match.group(1))*3600 + int(start_match.group(2))*60 + int(start_match.group(3))
-    end_t = int(end_match.group(1))*3600 + int(end_match.group(2))*60 + int(end_match.group(3))
+    start_t = int(start_match.group(2))*3600 + int(start_match.group(3))*60 + int(start_match.group(4))
+    end_t = int(end_match.group(2))*3600 + int(end_match.group(3))*60 + int(end_match.group(4))
     
     # convert the different to hours, round to 2 digits after the decimal
     differential = round(number=(end_t - start_t) / 3600, ndigits=2)
@@ -93,11 +100,20 @@ df['differentials'] = differentials
 # time per machine section
 timedict = {}
 
+# OPTIONAL for filtering after certain date
+reservations_since = 0
+
 for row in df.itertuples():
-    if row.tool in timedict:
-        timedict[int(row.tool)] += row.differentials
-    else:
-        timedict[int(row.tool)] = row.differentials
+    # this filters for reservations after 2024, in RPC only
+    start = re.fullmatch(pattern=time_pattern, string=row.start)
+    
+    if int(start.group(1)) == 2024 and int(row.tool) in rpc_ids:
+        if row.tool in timedict:
+            timedict[int(row.tool)] += row.differentials
+        else:
+            timedict[int(row.tool)] = row.differentials
+            
+        reservations_since += 1
 
 tpm = []
         
@@ -110,4 +126,5 @@ for machine in machine_ids.keys():
 
 pprint(f"reservation time per machine (<machine>, <hours>): {tpm}")
 print(f"total reservation time (hours): {round(reduce(lambda x, y: x + y, timedict.values()), 2)}")
-print(f"total number of reservations: {df.index.__len__()}")
+# print(f"total number of reservations: {df.index.__len__()}")
+print(f"total number of reservations: {reservations_since}")
