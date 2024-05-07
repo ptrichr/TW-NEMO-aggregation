@@ -3,15 +3,11 @@ import pandas as pd
 import re
 import os
 import json
+import requests
+from datetime import datetime
 from pprint import pprint
 from functools import reduce
-import requests
 from dotenv import load_dotenv
-
-# TODO
-# refactor for datetime module instead of regex parsing
-# make frontend
-# deploy app
 
 # load environment variables
 load_dotenv()
@@ -103,6 +99,8 @@ timedict = {}
 # OPTIONAL for filtering after certain date
 reservations_since = 0
 
+# build time per machine id dictionary (the next step can probably be 
+# condensed into this one but tuples are immutable..)
 for row in df.itertuples():
     # this filters for reservations after 2024, in RPC only
     start = re.fullmatch(pattern=time_pattern, string=row.start)
@@ -116,7 +114,8 @@ for row in df.itertuples():
         reservations_since += 1
 
 tpm = []
-        
+
+# build time per machine list
 for machine in machine_ids.keys():
     id = int(machine_ids[machine])        
     if id in timedict:
