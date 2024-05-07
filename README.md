@@ -4,7 +4,7 @@ This is an automation project written by [Nathan Ho](https://github.com/ptrichr)
 
 # Setup
 
-Assuming you have Python (preferably >=3.11, the version this was written in), follow these steps to get setup for aggregation:
+Assuming you have Python (preferably >=3.11, the version this was written in), follow these steps to get set up for aggregation:
 
 ## Virtual environment
 
